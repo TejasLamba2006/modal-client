@@ -3714,6 +3714,26 @@ def test_volume_get(servicer, set_env_client):
             assert f.read() == file_contents
 
 
+def test_volume_get_dir_to_nonexistent_destination(servicer, set_env_client):
+    vol_name = "my-test-vol"
+    run_cli_command(["volume", "create", vol_name])
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for name, contents in [("a.txt", b"aaa"), ("b.txt", b"bbb")]:
+            upload_path = os.path.join(tmpdir, name)
+            with open(upload_path, "wb") as f:
+                f.write(contents)
+            run_cli_command(["volume", "put", vol_name, upload_path, f"data/{name}"])
+
+        dest = os.path.join(tmpdir, "out")  # does not exist yet
+        run_cli_command(["volume", "get", vol_name, "data", dest])
+        assert os.path.isdir(dest)
+        # Same layout as downloading into an existing directory: files land under dest/data/.
+        with open(os.path.join(dest, "data", "a.txt"), "rb") as f:
+            assert f.read() == b"aaa"
+        with open(os.path.join(dest, "data", "b.txt"), "rb") as f:
+            assert f.read() == b"bbb"
+
+
 def test_volume_put_force(servicer, set_env_client):
     vol_name = "my-test-vol"
     run_cli_command(["volume", "create", vol_name])

@@ -50,6 +50,10 @@ async def _volume_download(
             else:
                 start_path = Path(remote_path).parent.as_posix().split("*")[0]
                 rel_path = PurePosixPath(entry.path).relative_to(start_path.lstrip("/"))
+                # A directory download into a not-yet-existing destination must create it first,
+                # otherwise every entry resolves to the same file path and overwrites each other.
+                if not local_destination.exists() and entry.path != remote_path.lstrip("/"):
+                    local_destination.mkdir(parents=True, exist_ok=True)
                 if local_destination.is_dir():
                     output_path = local_destination / rel_path
                 else:
